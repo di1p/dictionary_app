@@ -1,303 +1,348 @@
+// App.js
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, StyleSheet, Text, TextInput, TouchableHighlight, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableHighlight,
+  View
+} from 'react-native';
 
-let deviceHeight = Dimensions.get('window').height;
-let deviceWidth = Dimensions.get('window').width;
+const MAX_CONTENT_WIDTH = 900;
+const MAX_CARD_WIDTH = 800;
 
-function HomeScreen({navigation}) {
-
-  const [word, onChangeText] = React.useState();
-  const [isLoading, setLoading] = useState(true);
+function HomeScreen({ navigation }) {
+  const [word, onChangeText] = React.useState('');
+  const [isLoading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  console.log(data);
-  useEffect(() => {
-    var url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + word;
-    fetch(url)
-      .then((response) => response.json())
-      .then((json) => setData(json))
-      .catch((error) => console.error(error))
+
+  const fetchWord = (w) => {
+    if (!w) {
+      setData([]);
+      return;
+    }
+    setLoading(true);
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`)
+      .then((r) => r.json())
+      .then((json) => setData(Array.isArray(json) ? json : []))
+      .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [word])
+  };
+
+  // fetch when word changes (debounced-ish simple)
+  useEffect(() => {
+    const id = setTimeout(() => fetchWord(word.trim()), 250);
+    return () => clearTimeout(id);
+  }, [word]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.container}>
-          {isLoading ? (
-            <View style={styles.roe}> 
-              <Text>Loading</Text> 
-              <ActivityIndicator size='large'/> 
-            </View>
-          ) : (
-            <View style={styles.container}>
-                <Image
-                  style={styles.pic}
-                  source={require('./assets/dictonary.png')}
-                />
-                <Text style={styles.title}>
-                Dictionary
-                </Text>
-                <TextInput
-                  style={styles.inputText}
-                  placeholder='Enter your word...'
-                  onChangeText={onChangeText}
-                  value={word}
-                /> 
-            </View>
-          )}
-        
+      <View style={styles.content}>
+        {isLoading ? (
+          <View style={styles.roe}>
+            <Text>Loading</Text>
+            <ActivityIndicator size="large" style={{ marginLeft: 8 }} />
+          </View>
+        ) : (
+          <View>
+            <Image
+              style={styles.pic}
+              source={require('./assets/dictionary.png')} // change to './assets/dictonary.png' if that's your file
+            />
+            <Text style={styles.title}>Dictionary</Text>
+            <TextInput
+              style={styles.inputText}
+              placeholder="Enter your word..."
+              onChangeText={onChangeText}
+              value={word}
+            />
+          </View>
+        )}
+
         <View style={styles.navbarContainer}>
-            <TouchableHighlight style = {styles.navButton} underlayColor={'#0797f0'} onPress={() => navigation.navigate('Definition', {word})} >
-              <Text style={styles.navButtonText}>
-                Definition
-              </Text>
-            </TouchableHighlight>
-            
-            <TouchableHighlight style = {styles.navButton} underlayColor={'#0797f0'} onPress={() => navigation.navigate('Example', {word})} >
-              <Text style={styles.navButtonText}>
-                Example
-              </Text>
-            </TouchableHighlight>
+          <TouchableHighlight
+            style={styles.navButton}
+            underlayColor={'#0797f0'}
+            onPress={() => navigation.navigate('Definition', { word })}
+            disabled={!word}
+          >
+            <Text style={styles.navButtonText}>Definition</Text>
+          </TouchableHighlight>
+
+          <TouchableHighlight
+            style={styles.navButton}
+            underlayColor={'#0797f0'}
+            onPress={() => navigation.navigate('Example', { word })}
+            disabled={!word}
+          >
+            <Text style={styles.navButtonText}>Example</Text>
+          </TouchableHighlight>
         </View>
 
+        {/* Show first result preview (optional) */}
+        {!!data?.length && (
+          <View style={styles.wordInfoBox}>
+            <Text style={styles.word}>
+              {data[0]?.word} {data[0]?.phonetic ?? ''}
+            </Text>
+            <Text style={styles.heading}>Definition:</Text>
+            <Text style={styles.paragraph}>
+              {data[0]?.meanings?.[0]?.definitions?.[0]?.definition ?? '—'}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
-function Definition({route, navigation}) {
-
-  const {word} = route.params;
+function Definition({ route, navigation }) {
+  const { word } = route.params;
   const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  console.log(data);
-  
+
   useEffect(() => {
-    var url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + word;
-    fetch(url)
-      .then((response) => response.json())
-      .then((json) => setData(json))
-      .catch((error) => console.error(error))
+    const w = (word || '').trim();
+    if (!w) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`)
+      .then((r) => r.json())
+      .then((json) => setData(Array.isArray(json) ? json : []))
+      .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [word])
+  }, [word]);
 
   return (
     <View style={styles.container}>
-    
-        <ScrollView>
-          <FlatList
-            data={data}
-            keyExtractor={({ id }) => id}
-            renderItem={({ item }) => (
-              <View style={styles.container}>
+      <View style={styles.content}>
+        {isLoading ? (
+          <View style={styles.roe}>
+            <Text>Loading</Text>
+            <ActivityIndicator size="large" style={{ marginLeft: 8 }} />
+          </View>
+        ) : (
+          <ScrollView>
+            <FlatList
+              data={data}
+              keyExtractor={(_, idx) => String(idx)} // API items don't have stable ids
+              renderItem={({ item }) => (
                 <View style={styles.wordInfoBox}>
                   <Text style={styles.word}>
-                    {item.word} {item.phonetic}
+                    {item?.word} {item?.phonetic ?? ''}
                   </Text>
-                  <Text style={styles.heading}>
-                    Definition:
-                  </Text>
+                  <Text style={styles.heading}>Definition:</Text>
                   <Text style={styles.paragraph}>
-                    {item.meanings[0].definitions[0].definition}
-                    {'\n'}
+                    {item?.meanings?.[0]?.definitions?.[0]?.definition ?? '—'}
                   </Text>
                 </View>
-              </View>
-            )}
-          />
-        </ScrollView>
+              )}
+            />
+          </ScrollView>
+        )}
 
-        <TouchableHighlight style = {styles.navButton} underlayColor={'#0797f0'} onPress={() => navigation.navigate('Example', {word})} >
-          <Text style={styles.navButtonText}>
-            Example
-          </Text>
-        </TouchableHighlight>  
-
+        <TouchableHighlight
+          style={styles.navButton}
+          underlayColor={'#0797f0'}
+          onPress={() => navigation.navigate('Example', { word })}
+        >
+          <Text style={styles.navButtonText}>Example</Text>
+        </TouchableHighlight>
+      </View>
     </View>
   );
 }
 
-function Example({route, navigation}) {
-
-  const {word} = route.params;
+function Example({ route, navigation }) {
+  const { word } = route.params;
   const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  console.log(data);
-  
+
   useEffect(() => {
-    var url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + word;
-    fetch(url)
-      .then((response) => response.json())
-      .then((json) => setData(json))
-      .catch((error) => console.error(error))
+    const w = (word || '').trim();
+    if (!w) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`)
+      .then((r) => r.json())
+      .then((json) => setData(Array.isArray(json) ? json : []))
+      .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [word])
+  }, [word]);
 
   return (
     <View style={styles.container}>
-
-        <ScrollView>
+      <View style={styles.content}>
+        {isLoading ? (
+          <View style={styles.roe}>
+            <Text>Loading</Text>
+            <ActivityIndicator size="large" style={{ marginLeft: 8 }} />
+          </View>
+        ) : (
+          <ScrollView>
             <FlatList
               data={data}
-              keyExtractor={({ id }) => id}
+              keyExtractor={(_, idx) => String(idx)}
               renderItem={({ item }) => (
-                <View style={styles.container}>
-                  <View style={styles.wordInfoBox}>
-                    <Text style={styles.word}>
-                      {item.word} {item.phonetic}
-                    </Text>
-                    <Text style={styles.heading}>
-                      Example:
-                    </Text>
-                    <Text style={styles.paragraph}>
-                      {item.meanings[0].definitions[0].example}
-                    </Text>
-                  </View>
+                <View style={styles.wordInfoBox}>
+                  <Text style={styles.word}>
+                    {item?.word} {item?.phonetic ?? ''}
+                  </Text>
+                  <Text style={styles.heading}>Example:</Text>
+                  <Text style={styles.paragraph}>
+                    {item?.meanings?.[0]?.definitions?.[0]?.example ?? '—'}
+                  </Text>
                 </View>
               )}
             />
-      </ScrollView> 
+          </ScrollView>
+        )}
 
-      <TouchableHighlight style = {styles.navButton} underlayColor={'#0797f0'} onPress={() => navigation.navigate('Definition', {word})} >
-        <Text style={styles.navButtonText}>
-          Definition
-        </Text>
-      </TouchableHighlight>   
-
+        <TouchableHighlight
+          style={styles.navButton}
+          underlayColor={'#0797f0'}
+          onPress={() => navigation.navigate('Definition', { word })}
+        >
+          <Text style={styles.navButtonText}>Definition</Text>
+        </TouchableHighlight>
+      </View>
     </View>
   );
 }
 
 const Stack = createStackNavigator();
+
 export default function App() {
-
-  const [word, onChangeText] = React.useState();
-  const [isLoading, setLoading] = useState(true);
-  const [data, setData] = useState([]);
-  console.log(data);
-  
-  useEffect(() => {
-    var url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + word;
-    fetch(url)
-      .then((response) => response.json())
-      .then((json) => setData(json))
-      .catch((error) => console.error(error))
-      .finally(() => setLoading(false));
-  }, [word])
-
   return (
     <NavigationContainer>
-      <Stack.Navigator mode= "modal">
-        <Stack.Screen name= "Home" component={HomeScreen} />
-        <Stack.Screen name= "Definition" component={Definition} />
-        <Stack.Screen name= "Example" component={Example} />
+      <Stack.Navigator screenOptions={{ headerTitleAlign: 'center' }}>
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Definition" component={Definition} />
+        <Stack.Screen name="Example" component={Example} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
+/* --------- Responsive styles (no hard-coded device width/height) --------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#F6F6F6',
-    padding: 8,
-    height: deviceHeight,
-    width: deviceWidth,
-  },
-  pic: {
-    height: deviceHeight/8,
-    width: deviceHeight/8,
-  },
-  roe: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: deviceWidth/10,
+    justifyContent: 'flex-start',
+  },
+  content: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    alignSelf: 'center',
+  },
+
+  pic: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   title: {
-    margin: deviceWidth/15,
+    marginVertical: 12,
     fontFamily: 'serif',
-    fontSize: deviceWidth/15,
+    fontSize: 32,
     textAlign: 'center',
     color: 'black',
-    justifyContent: 'center',
+  },
+
+  inputText: {
+    fontSize: 16,
+    textAlign: 'center',
+    backgroundColor: 'white',
+    height: 40,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    borderColor: 'black',
+    borderWidth: 1,
+    borderRadius: 20,
+    marginVertical: 16,
+  },
+
+  navbarContainer: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  navButton: {
+    height: 44,
+    minWidth: 140,
+    paddingHorizontal: 16,
+    backgroundColor: '#5ea9e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderColor: '#edeff0',
+    borderWidth: 1,
+  },
+  navButtonText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: 'white',
+    fontFamily: 'arial',
+  },
+
+  wordInfoBox: {
+    width: '100%',
+    maxWidth: MAX_CARD_WIDTH,
+    alignSelf: 'center',
+    backgroundColor: '#e1ecf7',
+    borderColor: 'lightgray',
+    borderBottomWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 16,
   },
   word: {
-    fontSize: deviceWidth/14,
+    fontSize: 24,
     fontWeight: 'bold',
     color: 'black',
     textAlign: 'center',
+    marginBottom: 12,
     fontFamily: 'serif',
-    marginBottom: deviceWidth/20,
   },
   heading: {
-    fontSize: deviceWidth/25,
+    fontSize: 18,
     textAlign: 'center',
     fontWeight: 'bold',
     fontFamily: 'serif',
   },
   paragraph: {
-    fontSize: deviceWidth/20,
+    fontSize: 16,
     textAlign: 'center',
     fontFamily: 'serif',
-    marginBottom: deviceWidth/20,
-    marginTop: deviceWidth/40,
+    marginTop: 8,
+    marginBottom: 12,
   },
-  inputText: {
-    fontSize: deviceWidth/50,
-    textAlign: 'center',
-    backgroundColor: 'white',
-    height: deviceHeight/20,
-    width: deviceWidth/4,
-    justifyContent: 'center',
-    borderColor: 'black',
-    borderWidth: deviceWidth/200,
-    marginBottom: deviceWidth/20,
-    marginTop: deviceWidth/20,
-    alignItems: 'center',
-    borderRadius: 20,
-  },
-  navbarContainer: {
-    height: deviceWidth/8,
-    width: 9*deviceWidth/10,
+
+  roe: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: deviceWidth/20,
   },
-  navButton: {
-    height: deviceWidth/16,
-    width: deviceWidth/3.5,
-    backgroundColor: '#5ea9e0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: deviceWidth/20,
-    borderRadius: deviceWidth/20,
-    borderColor: '#edeff0',
-    borderWidth: deviceWidth/100,
-    
-  },
-  wordInfoBox: {
-  justifyContent: 'center',
-  alignItems: 'center',
-  margin: deviceHeight / 30,
-  backgroundColor: '#e1ecf7',
-  borderBottomWidth: deviceWidth / 100,
-  borderColor: 'lightgray',
-  width: (4 * deviceWidth) / 5,
-  borderRadius: 30,
-  padding: deviceWidth / 30,
-  minHeight: deviceHeight / 6,
-},
-  navButtonText: {
-    fontSize: deviceWidth/30,
-    textAlign: 'center',
-    color: 'white',
-    fontFamily: 'arial',
-  },
-  
 });
