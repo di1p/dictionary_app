@@ -2,11 +2,12 @@
   "name": "my-expo-web",
   "main": "expo-router/entry",
   "version": "1.0.0",
-    "homepage": "https://di1p.github.io/snack",
-    "repository": {
+
+  "repository": {
     "type": "git",
     "url": "https://github.com/di1p/snack.git"
   },
+
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -14,10 +15,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "predeploy": "npx expo export -p web",
-    "deploy": "gh-pages -d dist -r https://github.com/di1p/snack.git",
-    "postdeploy": "node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html')\""
+
+    "build:web": "npx expo export -p web"
+
+
   },
+
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-masked-view/masked-view": "0.3.2",
@@ -56,4 +59,3 @@
   },
   "private": true
 }
-
