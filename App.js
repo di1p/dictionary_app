@@ -19,84 +19,42 @@ const MAX_CARD_WIDTH = 800;
 
 function HomeScreen({ navigation }) {
   const [word, onChangeText] = React.useState('');
-  const [isLoading, setLoading] = useState(false);
-  const [data, setData] = useState([]);
-
-  const fetchWord = (w) => {
-    if (!w) {
-      setData([]);
-      return;
-    }
-    setLoading(true);
-    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${w}`)
-      .then((r) => r.json())
-      .then((json) => setData(Array.isArray(json) ? json : []))
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
-  };
-
-  // fetch when word changes (debounced-ish simple)
-  useEffect(() => {
-    const id = setTimeout(() => fetchWord(word.trim()), 250);
-    return () => clearTimeout(id);
-  }, [word]);
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {isLoading ? (
-          <View style={styles.roe}>
-            <Text>Loading</Text>
-            <ActivityIndicator size="large" style={{ marginLeft: 8 }} />
-          </View>
-        ) : (
-          <View>
-            <Image
-              style={styles.pic}
-              source={require('./assets/dictionary.png')} // change to './assets/dictonary.png' if that's your file
-            />
-            <Text style={styles.title}>Dictionary</Text>
-            <TextInput
-              style={styles.inputText}
-              placeholder="Enter your word..."
-              onChangeText={onChangeText}
-              value={word}
-            />
-          </View>
-        )}
+        <Image
+          style={styles.pic}
+          source={require('./assets/dictonary.png')} // or './assets/dictonary.png' if that's your file name
+        />
+        <Text style={styles.title}>Dictionary</Text>
+
+        <TextInput
+          style={styles.inputText}
+          placeholder="Enter your word..."
+          onChangeText={onChangeText}
+          value={word}
+        />
 
         <View style={styles.navbarContainer}>
           <TouchableHighlight
             style={styles.navButton}
-            underlayColor={'#0797f0'}
+            underlayColor="#0797f0"
             onPress={() => navigation.navigate('Definition', { word })}
-            disabled={!word}
+            disabled={!word.trim()}
           >
             <Text style={styles.navButtonText}>Definition</Text>
           </TouchableHighlight>
 
           <TouchableHighlight
             style={styles.navButton}
-            underlayColor={'#0797f0'}
+            underlayColor="#0797f0"
             onPress={() => navigation.navigate('Example', { word })}
-            disabled={!word}
+            disabled={!word.trim()}
           >
             <Text style={styles.navButtonText}>Example</Text>
           </TouchableHighlight>
         </View>
-
-        {/* Show first result preview (optional) */}
-        {!!data?.length && (
-          <View style={styles.wordInfoBox}>
-            <Text style={styles.word}>
-              {data[0]?.word} {data[0]?.phonetic ?? ''}
-            </Text>
-            <Text style={styles.heading}>Definition:</Text>
-            <Text style={styles.paragraph}>
-              {data[0]?.meanings?.[0]?.definitions?.[0]?.definition ?? '—'}
-            </Text>
-          </View>
-        )}
       </View>
     </View>
   );
@@ -233,8 +191,6 @@ export default function App() {
     </NavigationContainer>
   );
 }
-
-/* --------- Responsive styles (no hard-coded device width/height) --------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
